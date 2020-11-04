@@ -30,7 +30,6 @@ set(LIBEXSLT_VERSION ${LIBEXSLT_DOTTED_VERSION})
 
 find_package(Iconv)
 find_package(LibXml2 REQUIRED)
-find_package(Python2 COMPONENTS Interpreter Development)
 find_package(Threads)
 
 check_library_exists(grypt gcry_control "gcrypt.h" HAVE_GCRYPT)
@@ -39,7 +38,9 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(LIBXSLT_WITH_DEBUGGER "Add the debugging support" OFF)
 option(BUILD_XSLTPROC "Build xsltproc" OFF)
 option(BUILD_XSLT_WITH_PYTHON "Build libxslt with python" OFF)
-
+if (${BUILD_XSLT_WITH_PYTHON})
+    find_package(Python2 COMPONENTS Interpreter Development)
+endif ()
 if (HAVE_GCRYPT)
     option(LIBXSLT_WITH_CRYPTO "Add crypto support to exslt" ON)
 else ()
