@@ -37,6 +37,8 @@ check_library_exists(grypt gcry_control "gcrypt.h" HAVE_GCRYPT)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(LIBXSLT_WITH_DEBUGGER "Add the debugging support" OFF)
+option(BUILD_XSLTPROC "Build xsltproc" OFF)
+option(BUILD_XSLT_WITH_PYTHON "Build libxslt with python" OFF)
 
 if (HAVE_GCRYPT)
     option(LIBXSLT_WITH_CRYPTO "Add crypto support to exslt" ON)
@@ -47,6 +49,7 @@ endif ()
 option(LIBXSLT_WITH_MEM_DEBUG "Add the memory debugging module" OFF)
 option(LIBXSLT_WITH_MODULES "Add the module support" OFF)
 option(LIBXSLT_WITH_PROFILER "Add the profiling support" OFF)
+option(BUILD_LIBEXSLT "Build the libExslt target" OFF)
 
 if (Python2_FOUND)
     option(LIBXSLT_WITH_PYTHON "Build Python bindings" ON)
@@ -286,166 +289,172 @@ if (MSVC AND BUILD_SHARED_LIBS)
     install(FILES $<TARGET_PDB_FILE:LibXslt> DESTINATION ${CMAKE_INSTALL_BINDIR} CONFIGURATIONS Debug RelWithDebInfo COMPONENT debug)
 endif ()
 
-set(
-        LIBEXSLT_HDRS
-        libexslt/exslt.h
-        ${CMAKE_CURRENT_BINARY_DIR}/libexslt/exsltconfig.h
-        libexslt/exsltexports.h
-)
+if (${BUILD_LIBEXSLT})
+    set(
+            LIBEXSLT_HDRS
+            libexslt/exslt.h
+            ${CMAKE_CURRENT_BINARY_DIR}/libexslt/exsltconfig.h
+            libexslt/exsltexports.h
+    )
 
-set(
-        LIBEXSLT_SRCS
-        libexslt/common.c
-        libexslt/crypto.c
-        libexslt/date.c
-        libexslt/dynamic.c
-        libexslt/exslt.c
-        libexslt/functions.c
-        libexslt/libexslt.h
-        libexslt/math.c
-        libexslt/saxon.c
-        libexslt/sets.c
-        libexslt/strings.c
-)
+    set(
+            LIBEXSLT_SRCS
+            libexslt/common.c
+            libexslt/crypto.c
+            libexslt/date.c
+            libexslt/dynamic.c
+            libexslt/exslt.c
+            libexslt/functions.c
+            libexslt/libexslt.h
+            libexslt/math.c
+            libexslt/saxon.c
+            libexslt/sets.c
+            libexslt/strings.c
+    )
 
-add_library(LibExslt ${LIBEXSLT_HDRS} ${LIBEXSLT_SRCS})
+    add_library(LibExslt ${LIBEXSLT_HDRS} ${LIBEXSLT_SRCS})
 
-target_include_directories(
-        LibExslt
-        PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
-)
+    target_include_directories(
+            LibExslt
+            PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
+    )
 
-if (LIBXSLT_WITH_GCRYPT)
-    target_link_libraries(LibExslt PRIVATE gcrypt)
-endif ()
-
-target_link_libraries(LibExslt PUBLIC LibXslt LibXml2::LibXml2)
-
-if (UNIX)
-    target_link_libraries(LibExslt PRIVATE m)
-endif ()
-
-if (Threads_FOUND)
-    target_link_libraries(LibExslt PRIVATE Threads::Threads)
-endif ()
-
-set_target_properties(
-        LibExslt
-        PROPERTIES
-        IMPORT_PREFIX lib
-        OUTPUT_NAME exslt
-        POSITION_INDEPENDENT_CODE ON
-        PREFIX lib
-        VERSION ${LIBEXSLT_VERSION}
-)
-
-if (WIN32)
-    if (BUILD_SHARED_LIBS)
-        set_target_properties(
-                LibExslt
-                PROPERTIES
-                DEBUG_POSTFIX d
-        )
-    else ()
-        set_target_properties(
-                LibExslt
-                PROPERTIES
-                DEBUG_POSTFIX sd
-                MINSIZEREL_POSTFIX s
-                RELEASE_POSTFIX s
-                RELWITHDEBINFO_POSTFIX s
-        )
+    if (LIBXSLT_WITH_GCRYPT)
+        target_link_libraries(LibExslt PRIVATE gcrypt)
     endif ()
-endif ()
 
-install(FILES ${LIBEXSLT_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libexslt COMPONENT development)
+    target_link_libraries(LibExslt PUBLIC LibXslt LibXml2::LibXml2)
 
-install(
-        TARGETS LibExslt
-        EXPORT LibXslt
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT development
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime NAMELINK_SKIP
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
-)
+    if (UNIX)
+        target_link_libraries(LibExslt PRIVATE m)
+    endif ()
 
-if (BUILD_SHARED_LIBS)
+    if (Threads_FOUND)
+        target_link_libraries(LibExslt PRIVATE Threads::Threads)
+    endif ()
+
+    set_target_properties(
+            LibExslt
+            PROPERTIES
+            IMPORT_PREFIX lib
+            OUTPUT_NAME exslt
+            POSITION_INDEPENDENT_CODE ON
+            PREFIX lib
+            VERSION ${LIBEXSLT_VERSION}
+    )
+
+    if (WIN32)
+        if (BUILD_SHARED_LIBS)
+            set_target_properties(
+                    LibExslt
+                    PROPERTIES
+                    DEBUG_POSTFIX d
+            )
+        else ()
+            set_target_properties(
+                    LibExslt
+                    PROPERTIES
+                    DEBUG_POSTFIX sd
+                    MINSIZEREL_POSTFIX s
+                    RELEASE_POSTFIX s
+                    RELWITHDEBINFO_POSTFIX s
+            )
+        endif ()
+    endif ()
+
+    install(FILES ${LIBEXSLT_HDRS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libexslt COMPONENT development)
+
     install(
             TARGETS LibExslt
             EXPORT LibXslt
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT development NAMELINK_ONLY
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT development
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime NAMELINK_SKIP
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime
     )
-endif ()
 
-if (MSVC AND BUILD_SHARED_LIBS)
-    install(FILES $<TARGET_PDB_FILE:LibExslt> DESTINATION ${CMAKE_INSTALL_BINDIR} CONFIGURATIONS Debug RelWithDebInfo COMPONENT debug)
-endif ()
-
-add_executable(xsltproc xsltproc/xsltproc.c)
-target_include_directories(xsltproc PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(xsltproc LibExslt LibXslt)
-install(TARGETS xsltproc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
-
-if (LIBXSLT_WITH_PYTHON)
-    set(ENV{SRCDIR} ${CMAKE_CURRENT_SOURCE_DIR}/python)
-    execute_process(
-            COMMAND
-            ${Python2_EXECUTABLE}
-            ${CMAKE_CURRENT_SOURCE_DIR}/python/generator.py
-            ${CMAKE_CURRENT_SOURCE_DIR}/doc/libxslt-api.xml
-            ${CMAKE_CURRENT_SOURCE_DIR}/python/libxslt-python-api.xml
-            WORKING_DIRECTORY
-            ${CMAKE_CURRENT_BINARY_DIR}
-    )
-    unset(ENV{SRCDIR})
-    file(READ python/libxsl.py LIBXSL_PY)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in "${LIBXSL_PY}")
-    file(READ ${CMAKE_CURRENT_BINARY_DIR}/libxsltclass.py LIBXSLTCLASS_PY)
-    file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in "${LIBXSLTCLASS_PY}")
-    configure_file(${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in libxslt.py COPYONLY)
-    add_library(
-            LibXsltMod
-            libxslt-py.c
-            libxslt-py.h
-            python/libxml_wrap.h
-            python/libxslt.c
-            python/libxslt_wrap.h
-            python/types.c
-    )
-    target_include_directories(
-            LibXsltMod
-            PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/python>
-    )
-    target_link_libraries(LibXsltMod LibXslt LibExslt Python2::Python)
-    set_target_properties(
-            LibXsltMod
-            PROPERTIES
-            IMPORT_PREFIX lib
-            OUTPUT_NAME xsltmod
-            PREFIX lib
-            VERSION ${VERSION}
-    )
-    install(
-            TARGETS LibXsltMod
-            ARCHIVE DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT development
-            LIBRARY DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime NAMELINK_SKIP
-            RUNTIME DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime
-    )
     if (BUILD_SHARED_LIBS)
         install(
-                TARGETS LibXsltMod
-                LIBRARY DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT development NAMELINK_ONLY
+                TARGETS LibExslt
+                EXPORT LibXslt
+                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT development NAMELINK_ONLY
         )
     endif ()
-    if (MSVC AND BUILD_SHARED_LIBS)
-        install(FILES $<TARGET_PDB_FILE:LibXsltMod> DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug RelWithDebInfo COMPONENT debug)
-    endif ()
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime)
-endif ()
 
+    if (MSVC AND BUILD_SHARED_LIBS)
+        install(FILES $<TARGET_PDB_FILE:LibExslt> DESTINATION ${CMAKE_INSTALL_BINDIR} CONFIGURATIONS Debug RelWithDebInfo COMPONENT debug)
+    endif ()
+endif (${BUILD_LIBEXSLT})
+
+
+if (${BUILD_XSLTPROC})
+    add_executable(xsltproc xsltproc/xsltproc.c)
+    target_include_directories(xsltproc PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+    target_link_libraries(xsltproc LibExslt LibXslt)
+    install(TARGETS xsltproc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT programs)
+endif (${BUILD_XSLTPROC})
+
+if (${BUILD_XSLT_WITH_PYTHON})
+    if (LIBXSLT_WITH_PYTHON)
+        set(ENV{SRCDIR} ${CMAKE_CURRENT_SOURCE_DIR}/python)
+        execute_process(
+                COMMAND
+                ${Python2_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/python/generator.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/doc/libxslt-api.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/python/libxslt-python-api.xml
+                WORKING_DIRECTORY
+                ${CMAKE_CURRENT_BINARY_DIR}
+        )
+        unset(ENV{SRCDIR})
+        file(READ python/libxsl.py LIBXSL_PY)
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in "${LIBXSL_PY}")
+        file(READ ${CMAKE_CURRENT_BINARY_DIR}/libxsltclass.py LIBXSLTCLASS_PY)
+        file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in "${LIBXSLTCLASS_PY}")
+        configure_file(${CMAKE_CURRENT_BINARY_DIR}/libxslt.py.in libxslt.py COPYONLY)
+        add_library(
+                LibXsltMod
+                libxslt-py.c
+                libxslt-py.h
+                python/libxml_wrap.h
+                python/libxslt.c
+                python/libxslt_wrap.h
+                python/types.c
+        )
+        target_include_directories(
+                LibXsltMod
+                PUBLIC
+                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/python>
+        )
+        target_link_libraries(LibXsltMod LibXslt LibExslt Python2::Python)
+        set_target_properties(
+                LibXsltMod
+                PROPERTIES
+                IMPORT_PREFIX lib
+                OUTPUT_NAME xsltmod
+                PREFIX lib
+                VERSION ${VERSION}
+        )
+        install(
+                TARGETS LibXsltMod
+                ARCHIVE DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT development
+                LIBRARY DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime NAMELINK_SKIP
+                RUNTIME DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime
+        )
+        if (BUILD_SHARED_LIBS)
+            install(
+                    TARGETS LibXsltMod
+                    LIBRARY DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT development NAMELINK_ONLY
+            )
+        endif ()
+        if (MSVC AND BUILD_SHARED_LIBS)
+            install(FILES $<TARGET_PDB_FILE:LibXsltMod> DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} CONFIGURATIONS Debug RelWithDebInfo COMPONENT debug)
+        endif ()
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libxslt.py DESTINATION ${LIBXSLT_PYTHON_INSTALL_DIR} COMPONENT runtime)
+    endif ()
+endif ()
 install(FILES libexslt/libexslt.3 DESTINATION ${CMAKE_INSTALL_MANDIR}/man3 COMPONENT documentation)
 install(FILES libxslt/libxslt.3 DESTINATION ${CMAKE_INSTALL_MANDIR}/man3 COMPONENT documentation)
 install(FILES doc/xsltproc.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1 COMPONENT documentation)
