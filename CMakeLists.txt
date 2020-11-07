@@ -29,7 +29,7 @@ set(VERSION ${LIBXSLT_DOTTED_VERSION})
 set(LIBEXSLT_VERSION ${LIBEXSLT_DOTTED_VERSION})
 
 find_package(Iconv)
-find_package(LibXml2 REQUIRED)
+find_package(LibXml2)
 find_package(Threads)
 
 check_library_exists(grypt gcry_control "gcrypt.h" HAVE_GCRYPT)
@@ -208,9 +208,13 @@ set(
 
 add_library(LibXslt ${LIBXSLT_HDRS} ${LIBXSLT_SRCS})
 
+target_link_libraries(LibXslt PUBLIC $<TARGET_EXISTS:LibXml2::LibXml2> $<TARGET_EXISTS:LibXml2>)
+
 target_include_directories(
         LibXslt
         PUBLIC
+            "$<BUILD_INTERFACE:${LIBXML2_INCLUDE_DIR}>"
+        PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
@@ -224,7 +228,6 @@ if (Iconv_FOUND)
     target_link_libraries(LibXslt PUBLIC Iconv::Iconv)
 endif ()
 
-target_link_libraries(LibXslt PUBLIC LibXml2::LibXml2)
 
 if (UNIX)
     target_link_libraries(LibXslt PRIVATE m)
@@ -234,11 +237,7 @@ if (Threads_FOUND)
     target_link_libraries(LibXslt PRIVATE Threads::Threads)
 endif ()
 
-add_custom_target(
-        printlibxslt
-        COMMAND ${CMAKE_COMMAND} -E echo "LibXslt,LINK_LIBRARIES: $<TARGET_PROPERTY:LibXslt,LINK_LIBRARIES>\
-LibXml2::LibXml2 $<TARGET_PROPERTY:LibXml2::LibXml2,IMPORTED_LOCATION>"
-)
+
 set_target_properties(
         LibXslt
         PROPERTIES
