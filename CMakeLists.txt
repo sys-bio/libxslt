@@ -208,24 +208,39 @@ set(
 
 add_library(LibXslt ${LIBXSLT_HDRS} ${LIBXSLT_SRCS})
 
-target_link_libraries(LibXslt PUBLIC $<TARGET_EXISTS:LibXml2::LibXml2> $<TARGET_EXISTS:LibXml2>)
+
+set(LIBXML2_TARGET)
+if ($<TARGET_EXISTS:LibXml2::LibXml2>)
+    set(LIBXML2_TARGET LibXml2::LibXml2)
+elseif ($<TARGET_EXISTS:LibXml2>)
+    set(LIBXML2_TARGET LibXml2)
+endif ()
+
+target_link_libraries(LibXslt PUBLIC ${LIBXML2_TARGET})
 
 target_include_directories(
         LibXslt
         PUBLIC
-            "$<BUILD_INTERFACE:${LIBXML2_INCLUDE_DIR}>"
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-            $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
+        "$<BUILD_INTERFACE:${LIBXML2_INCLUDE_DIR}>"
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if (LIBXSLT_WITH_CRYPTO)
     target_link_libraries(LibXslt PRIVATE gcrypt)
 endif ()
 
-if (Iconv_FOUND)
-    target_link_libraries(LibXslt PUBLIC Iconv::Iconv)
+if ($<TARGET_EXISTS:libiconv-static>)
+    # for when we found iconv using find_package
+    set(INCONV_LINK_LIBRARY Iconv::Iconv)
+elseif ($<TARGET_EXISTS:Iconv::Iconv>)
+    # for when building as submodule in sys-bio with iconv-static availabel as a target
+    set(INCONV_LINK_LIBRARY libiconv-static)
+    #when both available libiconv-static takes precidence
 endif ()
+
+target_link_libraries(LibXslt PUBLIC ${ICONV_LINK_LIBRARIES})
 
 
 if (UNIX)
